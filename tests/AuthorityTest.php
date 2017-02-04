@@ -15,7 +15,7 @@ class AuthorityTest extends TestCase
     {
         $this->expectException( InvalidAuthorityUrlException::class );
         $authorityUrl = 'http://login.windows.net/common/';
-        $authority = new Authority($authorityUrl, false, null);
+        $authority = new Authority($authorityUrl, false);
     }
 
     /**
@@ -26,7 +26,7 @@ class AuthorityTest extends TestCase
     {
         $this->expectException( InvalidAuthorityUrlException::class );
         $authorityUrl = 'https://login.windows.net/common/?foo=bar';
-        $authority = new Authority($authorityUrl, false, null);
+        $authority = new Authority($authorityUrl, false);
     }
 
     /**
@@ -37,7 +37,7 @@ class AuthorityTest extends TestCase
     {
         $this->expectException( InvalidAuthorityUrlException::class );
         $authorityUrl = 'https://login.windows.net/';
-        $authority = new Authority($authorityUrl, false, null);
+        $authority = new Authority($authorityUrl, false);
     }
 
 }
