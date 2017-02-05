@@ -44,6 +44,7 @@ class AuthenticatorTest extends TestCase
         $authenticator = new Authenticator($authority, $validateAuthority);
         $callState = new CallState(12345);
         $authenticator->updateFromTemplate($callState);
+        //print_r($authenticator);
     }
 
 }

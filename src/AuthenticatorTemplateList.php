@@ -32,7 +32,7 @@ class AuthenticatorTemplateList
                 if ($matchingAuthenticatorTemplate == null)
                 {
                     // We only check with the first trusted authority (login.windows.net) for instance discovery
-                    $first = current($this->authenticatorTemplateList);
+                    $first = array_first($this->authenticatorTemplateList);
                     $first->verifyAnotherHostByInstanceDiscovery($host, $tenant, $callState);
                     //await this.First().verifyAnotherHostByInstanceDiscovery($host, $tenant, $callState).ConfigureAwait(false);
                 }

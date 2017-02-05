@@ -25,21 +25,28 @@ class AuthenticationContext
 
     protected $tokenRequestWithUserCode;
 
+    protected $extendedLifeTimeEnabled;
+
     /**
      * Constructor to create the context with the address of the authority.
+     * @param string       $authority         
+     * @param bool|boolean $validateAuthority
+     * @param TkenCache    $tokenCache
      */
-    public function __construct($authority, $validateAuthority, $tokenCache)
+    public function __construct(string $authority, bool $validateAuthority = false, $tokenCache = null)
     {
         $validate = ( ! isset($validateAuthority) || $validateAuthority === null || $validateAuthority );
 
-        $this->authenticator = new Authenticator($authority, ($validateAuthority != AuthorityValidationType::FALSE));
+        $this->authenticator = new Authenticator($authority, $validate);
+
+        $this->tokenCache = $tokenCache;
 
         $this->authority = new Authority($authority, $validate);
-        $this->oauth2client = null;
-        $this->correlationId = null;
-        $this->callContext = null;//{ options : globalADALOptions };
-        $this->tokenCache = isset($tokenCache) ? $tokenCache : null; //$globalCache;
-        $this->tokenRequestWithUserCode = null;// = {};
+        // $this->oauth2client = null;
+        // $this->correlationId = null;
+        // $this->callContext = null;//{ options : globalADALOptions };
+        // $this->tokenCache = isset($tokenCache) ? $tokenCache : null; //$globalCache;
+        // $this->tokenRequestWithUserCode = null;// = {};
     }
 
     /**
@@ -72,6 +79,13 @@ class AuthenticationContext
         return $auth_endpoint . '?' . http_build_query($parameters, null, '&');
     }
 
+    public function acquireToken(string $resource, string $clientId, string $redirectUri)
+    {
+        $requestData = new RequestData($this->authenticator, $this->tokenCache, $resource, new ClientKey($clientId), $this->extendedLifeTimeEnabled);
+        $tokenRequest = new TokenRequest($requestData, $redirectUri, $parameters, userId, extraQueryParameters, $this->createWebAuthenticationDialog($parameters));
+        return $tokenRequest->run();
+    }
+
     /**
      * Gets a token for a given resource.
      * @param {string}   $authorizationCode                   An authorization code returned from a client.
@@ -80,7 +94,8 @@ class AuthenticationContext
      * @param {string}   $clientId                            The OAuth client id of the calling application.
      * @param {string}   $clientSecret                        The OAuth client secret of the calling application.
      */
-    public function acquireTokenWithAuthorizationCode($authorizationCode, $redirectUri, $resource, $clientId, $clientSecret) {
+    public function acquireTokenWithAuthorizationCode($authorizationCode, $redirectUri, $resource, $clientId, $clientSecret)
+    {
 
         // argument.validateStringParameter(resource, 'resource');
         // argument.validateStringParameter(authorizationCode, 'authorizationCode');
