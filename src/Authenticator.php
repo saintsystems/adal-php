@@ -8,6 +8,8 @@ class Authenticator
 {
     private const TENANTLESS_TENANT_NAME = 'Common';
 
+    private static $authenticatorTemplateList;
+
     private $updatedFromTemplate; 
 
     /**
@@ -35,12 +37,49 @@ class Authenticator
     private $isTenantLess;
 
     /**
+     * [$authorizationUri description]
+     * @var [type]
+     */
+    private $authorizationUri;
+
+    /**
+     * [$deviceCodeUri description]
+     * @var [type]
+     */
+    private $deviceCodeUri;
+
+    /**
+     * [$tokenUri description]
+     * @var [type]
+     */
+    private $tokenUri;
+
+    /**
+     * [$userRealmUri description]
+     * @var [type]
+     */
+    private $userRealmUri;
+
+    /**
+     * [$selfSignedJwtAudience description]
+     * @var [type]
+     */
+    private $selfSignedJwtAudience;
+
+    /**
+     * [$correlationId description]
+     * @var [type]
+     */
+    private $correlationId;
+
+    /**
      * Instantiates a new instance of the Authority class.
      * @param string $authorityUrl      [description]
      * @param bool $validateAuthority [description]
      */
     public function __construct(string $authority, bool $validateAuthority)
     {
+        self::$authenticatorTemplateList = new AuthenticatorTemplateList();
         $this->authority = self::canonicalizeUri($authority);
 
         $this->authorityType = self::detectAuthorityType($this->getAuthority());
@@ -89,22 +128,65 @@ class Authenticator
         return $this->isTenantLess;
     }
 
-    /**
-     * Parse the authority to get the tenant name.  The rest of the
-     * URL is thrown away in favor of one of the endpoints from the validation doc.
-     * @return void
-     */
-    // private function detectAuthorityType()
-    // {
-    //     $this->host = $this->url['host'];
+    public function getAuthorizationUri()
+    {
+        return $this->authorizationUri;
+    }
 
-    //     $pathParts = explode('/', $this->url['path']);
-    //     $this->tenant = $pathParts[1];
+    public function getDeviceCodeUri()
+    {
+        return $this->deviceCodeUri;
+    }
 
-    //     if (!$this->tenant) {
-    //         throw new InvalidAuthorityUrlException('Could not determine tenant.');
-    //     }
-    // }
+    public function getTokenUri()
+    {
+        return $this->tokenUri;
+    }
+
+    public function getUserRealmUri()
+    {
+        return $this->userRealmUri;
+    }
+
+    public function getSelfSignedJwtAudience()
+    {
+        return $this->selfSignedJwtAudience;
+    }
+
+    public function getCorrelationId()
+    {
+        return $this->correlationId;
+    }
+
+    public function updateFromTemplate(CallState $callState)
+    {
+        if ( ! $this->updatedFromTemplate) {
+            $authorityUri = parse_url($this->getAuthority());
+            $host = $authorityUri['host'];
+            $path = $authorityUri['path'];
+            $pathParts = explode('/', $path);
+            $tenant = $pathParts[1];
+
+            $matchingTemplate = self::$authenticatorTemplateList->findMatchingItem($this->getValidateAuthority(), $host, $tenant, $callState);
+
+            $this->authorizationUri = str_replace('{tenant}', $tenant, $matchingTemplate->AuthorizeEndpoint);
+            $this->deviceCodeUri = str_replace('{tenant}', $tenant, $matchingTemplate->DeviceCodeEndpoint);
+            $this->tokenUri = str_replace('{tenant}', $tenant, $matchingTemplate->TokenEndpoint);
+            $this->userRealmUri = self::canonicalizeUri($matchingTemplate->UserRealmEndpoint);
+            $this->isTenantless = strcmp($tenant, self::TENANTLESS_TENANT_NAME) === 0;
+            $this->selfSignedJwtAudience = str_replace('{tenant}', $tenant, $matchingTemplate->Issuer);
+            $this->updatedFromTemplate = true;
+        }
+    }
+
+    public function updateTenantId(string $tenantId)
+    {
+        if ($this->getIsTenantless() && ! empty($tenantId))
+        {
+            $this->replaceTenantlessTenant($tenantId);
+            $this->updatedFromTemplate = false;
+        }
+    }
 
     private static function detectAuthorityType(string $authority) //: AuthorityType
     {
@@ -153,6 +235,7 @@ class Authenticator
 
     private function replaceTenantlessTenant(string $tenantId)
     {
+        //TODO: Replace with PHP preg_replace
         $regex = new Regex(Regex.Escape(self::TENANTLESS_TENANT_NAME), RegexOptions.IgnoreCase);
         $this->authority = regex.Replace($this->getAuthority(), $tenantId, 1);
     }

@@ -7,6 +7,8 @@ namespace ADAL;
  */
 class AuthenticationContext
 {
+    protected $authenticator;
+
     /**
      * The authentication authority
      * @var Authority
@@ -30,12 +32,23 @@ class AuthenticationContext
     {
         $validate = ( ! isset($validateAuthority) || $validateAuthority === null || $validateAuthority );
 
+        $this->authenticator = new Authenticator($authority, ($validateAuthority != AuthorityValidationType::FALSE));
+
         $this->authority = new Authority($authority, $validate);
         $this->oauth2client = null;
         $this->correlationId = null;
         $this->callContext = null;//{ options : globalADALOptions };
         $this->tokenCache = isset($tokenCache) ? $tokenCache : null; //$globalCache;
         $this->tokenRequestWithUserCode = null;// = {};
+    }
+
+    /**
+     * Gets address of the authority to issue token.
+     * @return string
+     */
+    public function getAuthority()
+    {
+        return $this->authenticator->getAuthority();
     }
 
     /**
